@@ -89,24 +89,52 @@ python ai_recon/scripts/train_unet.py \
   --output outputs/models/unet_synthetic_cloud_smoke.pth
 ```
 
-fastMRI smoke run after downloading a few HDF5 files:
+Formal fastMRI training with the official validation split:
 
 ```bash
 python ai_recon/scripts/train_fastmri_unet.py \
-  --data-root "$FASTMRI_DATA/knee_singlecoil_val" \
-  --max-slices 64 \
-  --epochs 3 \
-  --batch-size 4 \
-  --output outputs/models/unet_fastmri_smoke.pth \
-  --report docs/performance/fastmri_smoke_eval.md
+  --train-root "$FASTMRI_DATA/knee_singlecoil_train" \
+  --val-root "$FASTMRI_DATA/knee_singlecoil_val" \
+  --max-train-slices 10000 \
+  --max-val-slices 1000 \
+  --epochs 20 \
+  --batch-size 8 \
+  --num-workers 4 \
+  --crop-size 320 \
+  --acceleration 4 \
+  --amp \
+  --patience 5 \
+  --output outputs/models/unet_fastmri_v1_best.pth \
+  --last-output outputs/models/unet_fastmri_v1_last.pth \
+  --report docs/performance/fastmri_v1_eval.md
+```
+
+The best validation-PSNR checkpoint is saved to `--output`. The latest epoch is
+always saved to `--last-output`, so a preempted cloud job can resume safely:
+
+```bash
+python ai_recon/scripts/train_fastmri_unet.py \
+  --train-root "$FASTMRI_DATA/knee_singlecoil_train" \
+  --val-root "$FASTMRI_DATA/knee_singlecoil_val" \
+  --max-train-slices 10000 \
+  --max-val-slices 1000 \
+  --epochs 20 \
+  --batch-size 8 \
+  --num-workers 4 \
+  --crop-size 320 \
+  --amp \
+  --resume outputs/models/unet_fastmri_v1_last.pth \
+  --output outputs/models/unet_fastmri_v1_best.pth \
+  --last-output outputs/models/unet_fastmri_v1_last.pth \
+  --report docs/performance/fastmri_v1_eval.md
 ```
 
 Export to ONNX:
 
 ```bash
 python ai_recon/scripts/export_onnx.py \
-  --checkpoint outputs/models/unet_fastmri_smoke.pth \
-  --output outputs/models/unet_fastmri_smoke.onnx
+  --checkpoint outputs/models/unet_fastmri_v1_best.pth \
+  --output outputs/models/unet_fastmri_v1_best.onnx
 ```
 
 Then copy the ONNX file back to the local workstation and Jetson for TensorRT conversion.
@@ -136,4 +164,3 @@ Resume-grade target:
 - Report PSNR/SSIM on a clearly defined validation subset.
 - Report Jetson FP16 latency using `trtexec` and C++ service path.
 - Include exact data split size and acceleration factor.
-

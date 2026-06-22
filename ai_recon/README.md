@@ -25,8 +25,8 @@ python ai_recon/scripts/export_onnx.py --checkpoint outputs/models/unet_demo.pth
 python ai_recon/scripts/check_onnx_parity.py --onnx outputs/models/unet_demo.onnx
 ```
 
-Cloud fastMRI smoke training:
+Cloud fastMRI formal training:
 
 ```powershell
-python ai_recon/scripts/train_fastmri_unet.py --data-root %FASTMRI_DATA%\knee_singlecoil_val --max-slices 64 --epochs 3
+python ai_recon/scripts/train_fastmri_unet.py --train-root %FASTMRI_DATA%\knee_singlecoil_train --val-root %FASTMRI_DATA%\knee_singlecoil_val --max-train-slices 10000 --max-val-slices 1000 --epochs 20 --batch-size 8 --crop-size 320 --amp
 ```
