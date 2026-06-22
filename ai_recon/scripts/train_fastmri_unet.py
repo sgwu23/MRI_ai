@@ -9,7 +9,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "ai_recon" / "src"))
 
-from mri_recon.metrics import mse, psnr
+from mri_recon.metrics import psnr
 from mri_recon.models import build_unet
 from mri_recon.zero_filled import zero_filled_magnitude
 
@@ -26,7 +26,7 @@ class FastMriSliceDataset:
         self.data_root = data_root
         self.acceleration = acceleration
         self.index: list[tuple[Path, int]] = []
-        for file_path in sorted(data_root.glob("*.h5")):
+        for file_path in sorted(data_root.rglob("*.h5")):
             with self._open_h5(file_path) as h5_file:
                 slices = int(h5_file["kspace"].shape[0])
             for slice_index in range(slices):
@@ -45,6 +45,7 @@ class FastMriSliceDataset:
 
         masked_kspace = self._undersample(kspace, seed=item)
         masked = zero_filled_magnitude(masked_kspace)
+        masked = self._center_crop(masked, target.shape[-2:])
         target = self._normalize(target)
         masked = self._normalize(masked)
 
@@ -89,6 +90,22 @@ class FastMriSliceDataset:
         if peak > 0.0:
             image = image / peak
         return image.astype(np.float32)
+
+    @staticmethod
+    def _center_crop(image: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+        height, width = image.shape[-2:]
+        target_height, target_width = shape
+        if target_height > height or target_width > width:
+            raise ValueError(
+                f"Cannot crop image shape {image.shape[-2:]} to target shape {shape}"
+            )
+
+        top = (height - target_height) // 2
+        left = (width - target_width) // 2
+        return np.asarray(
+            image[..., top : top + target_height, left : left + target_width],
+            dtype=np.float32,
+        )
 
 
 def evaluate(model, loader, device) -> tuple[float, float, float]:
@@ -168,7 +185,7 @@ def main() -> int:
         )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"model": model.detach().cpu().state_dict()}, args.output)
+    torch.save({"model": model.cpu().state_dict()}, args.output)
     val_loss, model_psnr, zero_psnr = evaluate(model.to(device), val_loader, device)
 
     args.report.parent.mkdir(parents=True, exist_ok=True)
