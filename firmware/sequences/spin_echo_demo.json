@@ -1,0 +1,11 @@
+{
+  "name": "spin_echo_demo",
+  "events": [
+    { "t_us": 0, "channel": "rf", "value": 1 },
+    { "t_us": 90, "channel": "rf", "value": 0 },
+    { "t_us": 120, "channel": "gradient_x", "value": 1 },
+    { "t_us": 220, "channel": "gradient_x", "value": 0 },
+    { "t_us": 400, "channel": "adc_gate", "value": 1 },
+    { "t_us": 800, "channel": "adc_gate", "value": 0 }
+  ]
+}

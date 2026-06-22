@@ -1,0 +1,22 @@
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/nvidia/mri-edge-rtos-ai/build/jetson-cpp
+Consolidate compiler generated dependencies of target mri_inference
+[ 60%] Built target mri_inference
+Consolidate compiler generated dependencies of target mri_inference_demo
+[ 80%] Building CXX object CMakeFiles/mri_inference_demo.dir/src/main.cpp.o
+[100%] Linking CXX executable mri_inference_demo
+[100%] Built target mri_inference_demo
+[TensorRT] Using default stream in enqueueV3() may lead to performance issues due to additional calls to cudaStreamSynchronize() by TensorRT to ensure correct synchronization. Please use non-default stream instead.
+backend=tensorrt-fp16
+accelerated=1
+ok=1
+bytes=65536
+warmup=5
+repeats=50
+latency_ms_last=1.57249
+latency_ms_mean=1.83031
+latency_ms_min=1.51892
+latency_ms_max=2.8403
+output_elements=16384
+message=TensorRT engine inference completed

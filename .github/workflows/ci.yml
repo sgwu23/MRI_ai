@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install numpy pytest
+      - run: python tools/smoke_check.py
+      - run: python ai_recon/scripts/baseline_report.py --output docs/performance/baseline_local.md
+      - run: python tools/validate_sequence.py firmware/sequences/spin_echo_demo.json
+      - run: pytest tests
+
+  cpp-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S cpp_inference -B build/cpp_inference
+      - run: cmake --build build/cpp_inference
+      - run: ./build/cpp_inference/mri_inference_demo
