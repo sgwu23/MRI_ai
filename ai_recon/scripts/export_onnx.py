@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+import pathlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,6 +25,9 @@ def main() -> int:
         import torch
     except ImportError as exc:
         raise SystemExit("PyTorch is required for ONNX export. Install ai_recon/requirements.txt.") from exc
+
+    if os.name == "nt":
+        pathlib.PosixPath = pathlib.WindowsPath
 
     model = build_unet()
     state = torch.load(args.checkpoint, map_location="cpu")
