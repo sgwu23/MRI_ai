@@ -1,30 +1,60 @@
-# Jetson Handoff Point
+# Jetson And Hardware Handoff
 
-Everything before this point can be developed on the local workstation.
+This document records which parts can run on a local workstation and which parts require Jetson or STM32 hardware.
 
-## Local Workstation Can Finish
+## Completed Jetson Work
 
-- Synthetic reconstruction baseline.
-- fastMRI HDF5 dataset adapter.
-- PyTorch U-Net training on CPU/GPU if available.
-- ONNX export and ONNX Runtime parity check.
-- DICOM read/write with `pydicom`.
-- C++17 service interface and host stub.
-- Documentation, tests, CI, and resume narrative.
+- Exported the fastMRI v1 PyTorch checkpoint to ONNX.
+- Built a TensorRT FP16 engine on Jetson Orin with fixed input shape `1x1x320x320`.
+- Benchmarked the ONNX/TensorRT path with `trtexec`.
+- Verified the project C++ TensorRT backend can deserialize the engine and run inference.
 
-## Requires Jetson Connection
+Current benchmark summary:
 
-- TensorRT engine build with `trtexec`. First FP16 build completed on 2026-06-01.
-- FP16/INT8 calibration and accuracy comparison on Jetson Orin Nano.
-- Real latency, memory, and throughput measurements. First FP16 random-input benchmark is in `docs/performance/jetson_benchmark.md`.
-- Jetson-side C++ linking against TensorRT, CUDA, and optionally DCMTK.
-- End-to-end UART/USB bridge test with STM32H7 hardware.
+- `docs/performance/fastmri_v1_jetson_benchmark.md`
+- `docs/performance/trtexec_fastmri_v1_fp16.log`
+- `docs/performance/cpp_fastmri_v1_tensorrt.log`
 
-## Expected Jetson Commands Later
+## Local Workstation Can Run
+
+- Unit tests and smoke tests.
+- fastMRI HDF5 parsing if `h5py` is installed correctly.
+- PyTorch checkpoint loading on CPU.
+- ONNX export.
+- Reconstruction visualization from a checkpoint and a sample `.h5` file.
+- C++ host stub build where TensorRT is not available.
+
+## Requires Jetson
+
+- TensorRT engine build from ONNX.
+- Real GPU latency, throughput, and memory measurements.
+- C++ TensorRT backend linking against Jetson TensorRT and CUDA libraries.
+- Future optimization work such as dynamic shape profiles, CUDA graph, or INT8 calibration.
+
+## Requires STM32 Hardware
+
+- Zephyr board bring-up.
+- GPIO/timer pulse-sequence playback.
+- UART/USB bridge tests between STM32 and Jetson or host PC.
+- Timing jitter measurement with a logic analyzer or oscilloscope.
+
+The next hardware target is the available STM32F4 board. STM32H7 can remain an upgrade target after the F4 prototype is working.
+
+## Current Jetson Commands
+
+Build the engine:
 
 ```bash
-trtexec --onnx=outputs/models/unet_demo.onnx --saveEngine=outputs/models/unet_demo_fp16.engine --fp16
-trtexec --loadEngine=outputs/models/unet_demo_fp16.engine --shapes=masked_image:1x1x128x128
+/usr/src/tensorrt/bin/trtexec \
+  --onnx=models/unet_fastmri_v1_best.onnx \
+  --saveEngine=models/unet_fastmri_v1_best_fp16.engine \
+  --fp16 \
+  --shapes=masked_image:1x1x320x320 \
+  --duration=10
 ```
 
-Record real results in `docs/performance/jetson_benchmark.md`.
+Run the C++ smoke test:
+
+```bash
+./build/jetson-cpp/mri_inference_demo models/unet_fastmri_v1_best_fp16.engine 50 5
+```

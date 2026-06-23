@@ -1,95 +1,115 @@
-# MRI-Style Real-Time Control & Edge AI Reconstruction Platform
+# MRI Edge RTOS AI
 
-基于 RTOS 与边缘 AI 的医学影像重建仿真平台。
+An embedded medical-imaging prototype that combines fastMRI reconstruction, ONNX/TensorRT edge deployment, a C++ inference service, and an RTOS-oriented control scaffold.
 
-This repository is a personal embedded medical-imaging prototype aligned with MRI-style software systems: deterministic RTOS control, medical image reconstruction, edge inference, DICOM I/O, and software-quality practices inspired by IEC 62304 and MISRA C++.
+This repository is designed as an engineering portfolio project. It does not control real MRI hardware, but it follows the software shape of an MRI-style embedded system: deterministic control on an MCU, reconstruction on an edge GPU, explicit service boundaries, documented measurements, and reproducible scripts.
 
-## Project Goals
+## Highlights
 
-- Build a Zephyr RTOS pulse-sequence controller prototype for STM32H7.
-- Train and evaluate a lightweight U-Net for fastMRI-style undersampled MRI reconstruction.
-- Export PyTorch models to ONNX, then deploy through TensorRT on Jetson Orin Nano.
-- Wrap inference behind a C++ service interface and DICOM pipeline.
-- Keep documentation, tests, static analysis, and CI visible from day one.
+- Trained a lightweight U-Net on fastMRI knee single-coil data with 4x undersampling.
+- Exported the PyTorch checkpoint to ONNX with a fixed `1x1x320x320` input shape.
+- Built and benchmarked a TensorRT FP16 engine on NVIDIA Jetson Orin.
+- Implemented a C++17 inference boundary with a TensorRT backend using CUDA buffers and `enqueueV3`.
+- Generated real validation visualizations covering undersampled k-space, zero-filled input, model reconstruction, and target image.
+- Kept local tests, scripts, architecture notes, benchmark logs, and study documentation in the repo.
+
+## Current Results
+
+| Item | Result |
+| --- | --- |
+| Dataset | fastMRI knee single-coil train/validation |
+| Training subset | 10,000 train slices, 1,000 validation slices |
+| Acceleration | 4x undersampling |
+| Model | Lightweight residual U-Net |
+| Validation PSNR | 26.49 dB |
+| Zero-filled PSNR | 22.87 dB |
+| PSNR gain | +3.62 dB |
+| TensorRT target | Jetson Orin, TensorRT 10.3 |
+| TensorRT host latency | 5.65 ms mean by `trtexec` |
+| C++ end-to-end smoke latency | 8.30 ms mean |
+
+See [docs/performance/fastmri_v1_jetson_benchmark.md](docs/performance/fastmri_v1_jetson_benchmark.md) for the full benchmark summary.
+
+## Real Validation Example
+
+The following contact sheet is generated from a real fastMRI validation file. From left to right: undersampled k-space log magnitude, zero-filled image, U-Net reconstruction, and target image.
+
+![fastMRI validation reconstruction](docs/assets/fastmri_v1_real/fastmri_v1_reconstruction_contact_sheet.png)
+
+See [docs/assets/fastmri_v1_real/README.md](docs/assets/fastmri_v1_real/README.md) for the sample-level metrics.
 
 ## Repository Layout
 
 ```text
 mri-edge-rtos-ai/
-  ai_recon/           Python training, dataset adapters, ONNX export
-  cpp_inference/      C++17 inference service and DICOM/TensorRT integration
-  firmware/           Zephyr RTOS firmware prototype for STM32H7
-  docs/               Architecture notes, weekly logs, performance reports
-  tests/              Host-side unit tests and smoke tests
-  tools/              Developer scripts
+  ai_recon/           PyTorch models, fastMRI dataset code, training/export scripts
+  cpp_inference/      C++17 inference interface and TensorRT backend
+  firmware/           Zephyr RTOS-oriented pulse-sequence scaffold
+  docs/               Architecture, walkthroughs, study notes, and benchmark reports
+  tests/              Local unit and smoke tests
+  tools/              Developer and build scripts
 ```
 
-## Milestones
+## Documentation
 
-| Week | Focus | Deliverable |
-| --- | --- | --- |
-| W1 | MRI basics and baseline | fastMRI data smoke test, zero-filled baseline report |
-| W2 | U-Net training | MONAI/PyTorch training pipeline and metrics |
-| W3 | ONNX/TensorRT | ONNX export, runtime parity check, Jetson latency table |
-| W4 | DICOM and service | DICOM reader/writer and C++ inference API |
-| W5 | Zephyr bring-up | STM32H7 hello world, GPIO timing smoke test |
-| W6 | Pulse controller | JSON sequence parser and deterministic player |
-| W7 | Integration and quality | UART data bridge, tests, static analysis |
-| W8 | Packaging | Bilingual README, demo video, resume data |
+- [docs/technical_walkthrough_zh.md](docs/technical_walkthrough_zh.md): Chinese technical walkthrough for interview preparation.
+- [docs/study_guide_zh.md](docs/study_guide_zh.md): Chinese learning guide for the concepts used in this project.
+- [docs/architecture.md](docs/architecture.md): System architecture and module boundaries.
+- [docs/cloud_training_fastmri.md](docs/cloud_training_fastmri.md): Cloud training workflow.
+- [docs/performance/fastmri_v1_jetson_benchmark.md](docs/performance/fastmri_v1_jetson_benchmark.md): Jetson deployment and benchmark results.
 
 ## Quick Start
 
-Create a Python environment for AI experiments:
+Local checks:
 
 ```powershell
 cd mri-edge-rtos-ai
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r ai_recon/requirements.txt
-```
-
-Run the current smoke test:
-
-```powershell
+python -m pytest tests
 python tools/smoke_check.py
 ```
 
-Run all local checks that do not require Jetson:
+Generate reconstruction visualization from an existing checkpoint:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools/run_local_checks.ps1
+conda run -n base python ai_recon/scripts/make_recon_visualization.py `
+  --checkpoint outputs/models/unet_fastmri_v1_best.pth `
+  --sample-h5 D:\path\to\fastmri\knee_singlecoil_val\file1000000.h5 `
+  --slice-index 17 `
+  --output-dir docs/assets/fastmri_v1_real
 ```
 
-The stopping point before real Jetson work is documented in `docs/jetson_handoff.md`.
+Export ONNX:
 
-Current Jetson milestone:
+```powershell
+python ai_recon/scripts/export_onnx.py `
+  --checkpoint outputs/models/unet_fastmri_v1_best.pth `
+  --output outputs/models/unet_fastmri_v1_best.onnx
+```
 
-- TensorRT FP16 engine builds and runs on Jetson Orin.
-- C++ TensorRT backend loads the engine and runs inference.
-- Synthetic tensor input/output path is proven end-to-end.
-- Residual synthetic v2 checkpoint slightly improves over zero-filled baseline on the local synthetic sample; see `docs/performance/synthetic_tensor_eval_v2.md`.
+Build TensorRT engine on Jetson:
 
-fastMRI v1 completed milestone:
+```bash
+/usr/src/tensorrt/bin/trtexec \
+  --onnx=models/unet_fastmri_v1_best.onnx \
+  --saveEngine=models/unet_fastmri_v1_best_fp16.engine \
+  --fp16 \
+  --shapes=masked_image:1x1x320x320 \
+  --duration=10
+```
 
-- Formal fastMRI knee single-coil training completed on 10,000 train slices and 1,000 validation slices.
-- Validation PSNR improved from 22.87 dB zero-filled to 26.49 dB with the trained U-Net.
-- The 320x320 ONNX model was converted to TensorRT FP16 and benchmarked on Jetson Orin.
-- TensorRT mean host latency is 5.65 ms; project C++ end-to-end TensorRT smoke latency is 8.30 ms.
-- Real validation visualization is available in `docs/assets/fastmri_v1_real/README.md`.
-- Deployment summary is available in `docs/performance/fastmri_v1_jetson_benchmark.md`.
+Run the C++ TensorRT smoke test on Jetson:
 
-Next training milestone:
+```bash
+./build/jetson-cpp/mri_inference_demo models/unet_fastmri_v1_best_fp16.engine 50 5
+```
 
-- Use fastMRI knee single-coil data for real reconstruction training.
-- Follow `docs/cloud_training_fastmri.md` when renting cloud GPU.
-- Start with `ai_recon/scripts/train_fastmri_unet.py` on a small HDF5 subset.
+## Scope And Limitations
 
-## Resume Target
+- The project is a software prototype, not a clinical device and not a diagnostic tool.
+- The RTOS/STM32 side is currently a scaffold for deterministic pulse-sequence control; real hardware timing validation is the next planned stage.
+- Model artifacts, datasets, ONNX files, and TensorRT engines are intentionally excluded from Git because they are large or environment-specific.
+- DICOM support exists as an engineering path, but the current fastMRI v1 benchmark is tensor-level reconstruction rather than a full clinical DICOM pipeline.
 
-中文简历目标表达：
+## Next Stage
 
-> 基于 Zephyr RTOS + STM32H7 与 Jetson Orin Nano 构建 MRI 类医学影像系统原型，实现可编程脉冲序列控制、fastMRI 欠采样重建、ONNX/TensorRT 端侧部署、DICOM 数据链路与 C++17 工程化测试。
-
-English resume target:
-
-> Built an MRI-style embedded medical-imaging prototype with Zephyr RTOS on STM32H7 and Jetson Orin Nano, covering programmable pulse-sequence control, fastMRI reconstruction, ONNX/TensorRT edge deployment, DICOM I/O, and C++17 quality practices.
+The next engineering stage is to adapt the Zephyr RTOS scaffold to the available STM32F4 board, implement a deterministic GPIO/timer pulse player, and connect it to the Jetson-side reconstruction service through a simple UART protocol.

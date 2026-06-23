@@ -1,6 +1,6 @@
 # Firmware
 
-Zephyr RTOS firmware prototype for the STM32H7 pulse-sequence controller.
+Zephyr RTOS firmware prototype for an STM32 pulse-sequence controller. The next hardware target is an available STM32F4 board; STM32H7 remains a higher-performance upgrade path.
 
 The first firmware target is a deterministic GPIO pulse player:
 
@@ -9,7 +9,7 @@ The first firmware target is a deterministic GPIO pulse player:
 3. Drive GPIO or timer output compare.
 4. Report timing statistics over UART.
 
-The code in this folder starts as a portable host-readable scaffold. Board-specific overlays should be added after confirming the exact STM32H7 board model.
+The code in this folder starts as a portable host-readable scaffold. Board-specific overlays should be added after confirming the exact STM32F4 board model.
 
 ## Host-First Sequence Contract
 
@@ -25,4 +25,4 @@ The first firmware contract is intentionally simple:
 }
 ```
 
-Before hardware timing tests, validate sequences on the host side and keep all event timestamps monotonic. Real jitter measurements require STM32H7 plus a logic analyzer, not Jetson.
+Before hardware timing tests, validate sequences on the host side and keep all event timestamps monotonic. Real jitter measurements require an STM32 board plus a logic analyzer or oscilloscope; without external measurement hardware, UART logs and GPIO toggling can still validate the software flow.

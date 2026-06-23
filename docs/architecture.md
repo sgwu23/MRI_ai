@@ -13,7 +13,7 @@ The project simulates the software shape of an MRI embedded system without requi
 
 ```mermaid
 flowchart LR
-    A["Zephyr RTOS Controller<br/>STM32H7"] --> B["UART/USB Bridge"]
+    A["Zephyr RTOS Controller<br/>STM32F4 now / STM32H7 upgrade path"] --> B["UART/USB Bridge"]
     B --> C["K-space Adapter<br/>fastMRI HDF5"]
     C --> D["AI Reconstruction<br/>PyTorch / MONAI"]
     D --> E["ONNX / TensorRT<br/>Jetson Orin Nano"]
@@ -49,4 +49,3 @@ Inference request:
 input: DICOM bytes or normalized k-space tensor
 output: reconstructed DICOM bytes and metrics metadata
 ```
-
