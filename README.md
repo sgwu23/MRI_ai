@@ -52,8 +52,6 @@ mri-edge-rtos-ai/
 
 ## Documentation
 
-- [docs/technical_walkthrough_zh.md](docs/technical_walkthrough_zh.md): Chinese technical walkthrough for interview preparation.
-- [docs/study_guide_zh.md](docs/study_guide_zh.md): Chinese learning guide for the concepts used in this project.
 - [docs/architecture.md](docs/architecture.md): System architecture and module boundaries.
 - [docs/cloud_training_fastmri.md](docs/cloud_training_fastmri.md): Cloud training workflow.
 - [docs/performance/fastmri_v1_jetson_benchmark.md](docs/performance/fastmri_v1_jetson_benchmark.md): Jetson deployment and benchmark results.
