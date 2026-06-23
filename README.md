@@ -69,6 +69,15 @@ Current Jetson milestone:
 - Synthetic tensor input/output path is proven end-to-end.
 - Residual synthetic v2 checkpoint slightly improves over zero-filled baseline on the local synthetic sample; see `docs/performance/synthetic_tensor_eval_v2.md`.
 
+fastMRI v1 completed milestone:
+
+- Formal fastMRI knee single-coil training completed on 10,000 train slices and 1,000 validation slices.
+- Validation PSNR improved from 22.87 dB zero-filled to 26.49 dB with the trained U-Net.
+- The 320x320 ONNX model was converted to TensorRT FP16 and benchmarked on Jetson Orin.
+- TensorRT mean host latency is 5.65 ms; project C++ end-to-end TensorRT smoke latency is 8.30 ms.
+- Real validation visualization is available in `docs/assets/fastmri_v1_real/README.md`.
+- Deployment summary is available in `docs/performance/fastmri_v1_jetson_benchmark.md`.
+
 Next training milestone:
 
 - Use fastMRI knee single-coil data for real reconstruction training.

@@ -1,13 +1,13 @@
 # fastMRI v1 Reconstruction Visualization
 
-- Source: `synthetic phantom smoke sample`
+- Source: `file1000000.h5 slice 17`
 - Checkpoint: `outputs\models\unet_fastmri_v1_best.pth`
 - Crop size: `320x320`
 - Acceleration: `4x`
 - Seed: `1234`
-- Zero-filled PSNR: `21.40 dB`
-- Model reconstruction PSNR: `18.04 dB`
-- Sample PSNR gain: `-3.36 dB`
+- Zero-filled PSNR: `17.15 dB`
+- Model reconstruction PSNR: `17.99 dB`
+- Sample PSNR gain: `+0.84 dB`
 
 Panels:
 

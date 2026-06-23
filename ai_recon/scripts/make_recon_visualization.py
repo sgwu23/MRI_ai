@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "ai_recon" / "src"))
 
 from mri_recon.models import build_unet
+from mri_recon.metrics import psnr
 from mri_recon.phantom import synthetic_slice
 from mri_recon.zero_filled import centered_fft2, zero_filled_magnitude
 
@@ -60,6 +61,8 @@ def main() -> int:
         model_input = torch.from_numpy(zero_filled[None, None, :, :]).float()
         prediction = model(model_input)[0, 0].cpu().numpy()
     prediction = normalize(prediction)
+    zero_psnr = psnr(target, zero_filled)
+    model_psnr = psnr(target, prediction)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     panels = [
@@ -73,7 +76,7 @@ def main() -> int:
 
     contact = make_contact_sheet([image for _, image in panels])
     write_png(args.output_dir / "fastmri_v1_reconstruction_contact_sheet.png", contact)
-    write_report(args.output_dir / "README.md", source, args, crop_size)
+    write_report(args.output_dir / "README.md", source, args, crop_size, zero_psnr, model_psnr)
 
     print(f"wrote {args.output_dir}")
     print(f"source={source}")
@@ -157,7 +160,7 @@ def png_chunk(kind: bytes, data: bytes) -> bytes:
     return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
 
 
-def write_report(path: Path, source: str, args, crop_size: int) -> None:
+def write_report(path: Path, source: str, args, crop_size: int, zero_psnr: float, model_psnr: float) -> None:
     path.write_text(
         "\n".join(
             [
@@ -168,6 +171,9 @@ def write_report(path: Path, source: str, args, crop_size: int) -> None:
                 f"- Crop size: `{crop_size}x{crop_size}`",
                 f"- Acceleration: `{args.acceleration}x`",
                 f"- Seed: `{args.seed}`",
+                f"- Zero-filled PSNR: `{zero_psnr:.2f} dB`",
+                f"- Model reconstruction PSNR: `{model_psnr:.2f} dB`",
+                f"- Sample PSNR gain: `{model_psnr - zero_psnr:+.2f} dB`",
                 "",
                 "Panels:",
                 "",
@@ -177,6 +183,8 @@ def write_report(path: Path, source: str, args, crop_size: int) -> None:
                 "4. `04_target.png`: target image",
                 "",
                 "The contact sheet is `fastmri_v1_reconstruction_contact_sheet.png`.",
+                "",
+                "![fastMRI v1 reconstruction contact sheet](fastmri_v1_reconstruction_contact_sheet.png)",
                 "",
             ]
         ),

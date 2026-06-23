@@ -46,3 +46,4 @@
 - Training evaluation: `docs/performance/fastmri_v1_eval.md`
 - TensorRT build and benchmark: `docs/performance/trtexec_fastmri_v1_fp16.log`
 - C++ inference smoke: `docs/performance/cpp_fastmri_v1_tensorrt.log`
+- Real validation visualization: `docs/assets/fastmri_v1_real/README.md`
