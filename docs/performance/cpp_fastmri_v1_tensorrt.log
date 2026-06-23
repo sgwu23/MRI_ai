@@ -1,0 +1,14 @@
+backend=tensorrt-fp16
+accelerated=1
+ok=1
+bytes=409600
+warmup=5
+repeats=50
+input_path=-
+output_path=-
+latency_ms_last=8.88366
+latency_ms_mean=8.30151
+latency_ms_min=6.14912
+latency_ms_max=11.6161
+output_elements=102400
+message=TensorRT engine inference completed
