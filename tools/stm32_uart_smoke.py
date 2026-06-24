@@ -10,6 +10,7 @@ def main() -> int:
     parser.add_argument("--port", required=True, help="Serial port, for example COM6 on Windows.")
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--timeout", type=float, default=0.2)
+    parser.add_argument("--char-delay", type=float, default=0.0, help="Optional delay between transmitted characters.")
     args = parser.parse_args()
 
     try:
@@ -24,10 +25,22 @@ def main() -> int:
         drain(connection, duration=0.5)
         for command in ("PING", "STATUS", "RUN DEMO", "STATUS"):
             print(f">>> {command}")
-            connection.write((command + "\r\n").encode("ascii"))
-            connection.flush()
+            write_command(connection, command, args.char_delay)
             drain(connection, duration=1.0 if command == "RUN DEMO" else 0.5)
     return 0
+
+
+def write_command(connection, command: str, char_delay: float) -> None:
+    payload = (command + "\r\n").encode("ascii")
+    if char_delay <= 0.0:
+        connection.write(payload)
+        connection.flush()
+        return
+
+    for byte in payload:
+        connection.write(bytes([byte]))
+        connection.flush()
+        time.sleep(char_delay)
 
 
 def drain(connection, duration: float) -> None:

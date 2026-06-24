@@ -1,0 +1,41 @@
+/ {
+	chosen {
+		zephyr,console = &usart1;
+		zephyr,shell-uart = &usart1;
+	};
+};
+
+&clk_hsi {
+	status = "okay";
+};
+
+&pll {
+	div-m = <16>;
+	mul-n = <336>;
+	div-p = <2>;
+	div-q = <7>;
+	clocks = <&clk_hsi>;
+	status = "okay";
+};
+
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+	pinctrl-names = "default";
+	current-speed = <57600>;
+	status = "okay";
+};
+
+&usart2 {
+	current-speed = <57600>;
+	status = "okay";
+};
+
+&usart3 {
+	current-speed = <57600>;
+	status = "okay";
+};
+
+&usart6 {
+	current-speed = <57600>;
+	status = "okay";
+};
