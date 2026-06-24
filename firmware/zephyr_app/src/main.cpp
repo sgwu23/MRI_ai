@@ -445,7 +445,7 @@ void poll_uart_commands() {
 
     broadcast_line("mri_sequence_controller board=stm32f407vg mode=irq_uart");
     broadcast_line("uart_irq active=usart1,usart2,usart3,usart6 baud=57600");
-    broadcast_line("gpio_outputs=disabled reason=external_camera_wifi_pins_unknown");
+    broadcast_line("gpio_outputs=disabled reason=preserve_swd_and_external_module_pins");
     print_help();
 
     while (true) {

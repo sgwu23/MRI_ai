@@ -120,4 +120,4 @@ python tools/stm32_sequence_client.py firmware/sequences/spin_echo_demo.json --p
 
 ## Next Stage
 
-The next engineering stage is to connect the STM32 sequence bridge to the Jetson/host workflow, then map sequence channels to safe GPIO/timer outputs after the camera and WiFi module pin usage is confirmed.
+The next engineering stage is optional hardware timing validation: choose safe, non-SWD STM32 pins and map sequence channels to GPIO/timer outputs after the camera and WiFi module pin usage is confirmed.

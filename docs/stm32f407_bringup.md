@@ -78,8 +78,9 @@ Current verified build target:
 - Console UART: USART1, TX `PA9`, RX `PA10`, `57600`
 - Clock overlay: internal HSI `16 MHz`, PLL `M=16`, `N=336`, `P=2`, target system clock `168 MHz`
 - RX path: UART interrupt-driven receive with line buffering
+- GPIO/timer outputs: disabled in the stable firmware image
 - Firmware image for FlyMCU: `build\zephyr-stm32f407\zephyr\zephyr.hex`
-- Last local build size: FLASH `20872 B`, RAM `8064 B`
+- Last local build size: FLASH `23516 B`, RAM `8640 B`
 
 Note: `stm32f4_disco` was not used because the installed Zephyr snapshot references a missing board pinctrl include. `olimex_stm32_h407` is still an STM32F407 target and is sufficient for the UART-only firmware stage.
 
@@ -141,6 +142,18 @@ seq_done name=spin_echo_demo total_us=800 runs=1
 ```
 
 This has been verified on the STM32F407VGT board through `COM3` at `57600` baud with the normal, no-delay host client.
+
+## Logic Analyzer Follow-Up
+
+The stable firmware image does not drive GPIO pins. This preserves SWD pins (`PA13/PA14`) and avoids interfering with existing camera/WiFi wiring.
+
+For a future logic-analyzer stage, first identify three safe exposed pins that do not overlap with USART1 (`PA9/PA10`), USB, BOOT0, NRST, SWD, camera, or WiFi. Then map `rf`, `gradient_x`, and `adc_gate` to GPIO or timer outputs and capture the expected `spin_echo_demo` windows:
+
+| Channel | High interval |
+| --- | --- |
+| `rf` | `0 us` to `90 us` |
+| `gradient_x` | `120 us` to `220 us` |
+| `adc_gate` | `400 us` to `800 us` |
 
 If FlyMCU flashes successfully but this smoke test still shows the old `unkown cmd` firmware response, the board did not boot the new image. Recheck `BOOT0`, reset timing, selected hex file, and whether flash erase/program completed.
 

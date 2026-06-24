@@ -8,8 +8,8 @@ The first firmware target is a UART-only deterministic sequence controller:
 2. Receive commands with UART interrupt-driven RX and line buffering.
 3. Load a JSON-defined sequence from a host-side client.
 4. Play a built-in or loaded spin echo sequence by microsecond timestamp.
-5. Report each event over UART without driving GPIO pins yet.
-6. Keep GPIO outputs disabled until the camera and WiFi module pin usage is confirmed.
+5. Report each event over UART for traceability.
+6. Keep GPIO/timer output disabled until safe, non-SWD pins are confirmed.
 
 The current STM32F407VGT bring-up uses the `olimex_stm32_h407` Zephyr board target plus a local overlay for USART1, 57600 baud, and an HSI-based clock configuration.
 
@@ -70,6 +70,12 @@ powershell -ExecutionPolicy Bypass -File tools/build_zephyr_stm32f407.ps1
 ```
 
 The generated FlyMCU image is `build/zephyr-stm32f407/zephyr/zephyr.hex`.
+
+## GPIO Output Status
+
+GPIO/timer outputs are intentionally disabled in the current firmware image. A brief logic-analyzer experiment showed that candidate pins can collide with board functions or SWD pins, so the stable public build keeps the STM32 as a UART sequence bridge only.
+
+Future hardware-output work should first pick safe, exposed pins that do not conflict with the camera module, WiFi module, USART1, USB, BOOT0, NRST, or SWD (`PA13/PA14`). Then the `rf`, `gradient_x`, and `adc_gate` sequence channels can be mapped to GPIO or timer compare outputs and verified with a logic analyzer.
 
 ## Host-First Sequence Contract
 
