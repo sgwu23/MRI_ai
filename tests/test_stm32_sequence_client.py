@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-from stm32_sequence_client import render_load_commands
+from stm32_sequence_client import render_load_commands, write_report
 
 
 def test_render_load_commands_for_spin_echo_sequence():
@@ -36,3 +36,23 @@ def test_render_load_commands_rejects_whitespace_tokens():
         assert "UART-token safe" in str(exc)
     else:
         raise AssertionError("expected invalid sequence name to be rejected")
+
+
+def test_write_report_marks_pass_when_load_and_run_complete(tmp_path):
+    report = tmp_path / "stm32_report.md"
+
+    write_report(
+        report_path=report,
+        sequence_path=Path("firmware/sequences/spin_echo_demo.json"),
+        port="COM3",
+        baud=57600,
+        transcript=[
+            "load_done name=spin_echo_demo events=6",
+            "seq_done name=spin_echo_demo total_us=800 runs=1",
+        ],
+    )
+
+    text = report.read_text(encoding="utf-8")
+    assert "Status: `PASS`" in text
+    assert "Load acknowledged: `True`" in text
+    assert "Run completed: `True`" in text

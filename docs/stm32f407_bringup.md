@@ -123,6 +123,12 @@ The next-stage host client loads a JSON sequence file and sends it through the S
 python tools/stm32_sequence_client.py firmware/sequences/spin_echo_demo.json --port COM3 --baud 57600
 ```
 
+To save the transcript as a project report:
+
+```powershell
+python tools/stm32_sequence_client.py firmware/sequences/spin_echo_demo.json --port COM3 --baud 57600 --report docs/performance/stm32_sequence_bridge.md
+```
+
 Expected output includes:
 
 ```text
