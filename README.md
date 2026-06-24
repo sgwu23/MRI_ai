@@ -54,6 +54,7 @@ mri-edge-rtos-ai/
 
 - [docs/architecture.md](docs/architecture.md): System architecture and module boundaries.
 - [docs/cloud_training_fastmri.md](docs/cloud_training_fastmri.md): Cloud training workflow.
+- [docs/stm32f407_bringup.md](docs/stm32f407_bringup.md): STM32F407VGT serial bring-up notes.
 - [docs/performance/fastmri_v1_jetson_benchmark.md](docs/performance/fastmri_v1_jetson_benchmark.md): Jetson deployment and benchmark results.
 
 ## Quick Start
@@ -110,4 +111,4 @@ Run the C++ TensorRT smoke test on Jetson:
 
 ## Next Stage
 
-The next engineering stage is to adapt the Zephyr RTOS scaffold to the available STM32F4 board, implement a deterministic GPIO/timer pulse player, and connect it to the Jetson-side reconstruction service through a simple UART protocol.
+The next engineering stage is to flash the UART-only Zephyr sequence controller on the available STM32F407VGT board, then map sequence channels to safe GPIO/timer outputs after the camera and WiFi module pin usage is confirmed.
