@@ -43,6 +43,19 @@ Sequence description:
 }
 ```
 
+STM32 UART bridge:
+
+```text
+PING
+LOAD BEGIN spin_echo_demo 6
+LOAD EVENT 0 rf 1
+LOAD EVENT 90 rf 0
+LOAD END
+RUN LOADED
+```
+
+The host-side `tools/stm32_sequence_client.py` renders this line protocol from the JSON sequence file. The STM32F407 Zephyr firmware receives commands with interrupt-driven UART RX and reports each scheduled event back over UART.
+
 Inference request:
 
 ```text

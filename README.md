@@ -11,6 +11,7 @@ This repository is designed as an engineering portfolio project. It does not con
 - Built and benchmarked a TensorRT FP16 engine on NVIDIA Jetson Orin.
 - Implemented a C++17 inference boundary with a TensorRT backend using CUDA buffers and `enqueueV3`.
 - Generated real validation visualizations covering undersampled k-space, zero-filled input, model reconstruction, and target image.
+- Brought up a Zephyr-based STM32F407 UART sequence controller on real hardware.
 - Kept local tests, scripts, architecture notes, benchmark logs, and study documentation in the repo.
 
 ## Current Results
@@ -27,6 +28,7 @@ This repository is designed as an engineering portfolio project. It does not con
 | TensorRT target | Jetson Orin, TensorRT 10.3 |
 | TensorRT host latency | 5.65 ms mean by `trtexec` |
 | C++ end-to-end smoke latency | 8.30 ms mean |
+| STM32F407 RTOS bridge | USART1 57600, interrupt-driven RX, JSON sequence load/run path |
 
 See [docs/performance/fastmri_v1_jetson_benchmark.md](docs/performance/fastmri_v1_jetson_benchmark.md) for the full benchmark summary.
 
@@ -102,13 +104,20 @@ Run the C++ TensorRT smoke test on Jetson:
 ./build/jetson-cpp/mri_inference_demo models/unet_fastmri_v1_best_fp16.engine 50 5
 ```
 
+Build and test the STM32F407 Zephyr controller:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/build_zephyr_stm32f407.ps1
+python tools/stm32_sequence_client.py firmware/sequences/spin_echo_demo.json --port COM3 --baud 57600
+```
+
 ## Scope And Limitations
 
 - The project is a software prototype, not a clinical device and not a diagnostic tool.
-- The RTOS/STM32 side is currently a scaffold for deterministic pulse-sequence control; real hardware timing validation is the next planned stage.
+- The RTOS/STM32 side validates UART sequence loading and event playback, but does not yet drive MRI hardware outputs.
 - Model artifacts, datasets, ONNX files, and TensorRT engines are intentionally excluded from Git because they are large or environment-specific.
 - DICOM support exists as an engineering path, but the current fastMRI v1 benchmark is tensor-level reconstruction rather than a full clinical DICOM pipeline.
 
 ## Next Stage
 
-The next engineering stage is to flash the UART-only Zephyr sequence controller on the available STM32F407VGT board, then map sequence channels to safe GPIO/timer outputs after the camera and WiFi module pin usage is confirmed.
+The next engineering stage is to connect the STM32 sequence bridge to the Jetson/host workflow, then map sequence channels to safe GPIO/timer outputs after the camera and WiFi module pin usage is confirmed.

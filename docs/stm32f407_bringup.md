@@ -115,6 +115,27 @@ seq_start name=spin_echo_demo events=6
 seq_done name=spin_echo_demo total_us=800 runs=1
 ```
 
+## Host Sequence Client
+
+The next-stage host client loads a JSON sequence file and sends it through the STM32 line protocol:
+
+```powershell
+python tools/stm32_sequence_client.py firmware/sequences/spin_echo_demo.json --port COM3 --baud 57600
+```
+
+Expected output includes:
+
+```text
+load_begin name=spin_echo_demo expected=6
+load_event index=0 t_us=0 channel=rf value=1
+load_done name=spin_echo_demo events=6
+loaded name=spin_echo_demo ready=1 events=6 expected=6 loading=0
+seq_start name=spin_echo_demo events=6
+seq_done name=spin_echo_demo total_us=800 runs=1
+```
+
+This has been verified on the STM32F407VGT board through `COM3` at `57600` baud with the normal, no-delay host client.
+
 If FlyMCU flashes successfully but this smoke test still shows the old `unkown cmd` firmware response, the board did not boot the new image. Recheck `BOOT0`, reset timing, selected hex file, and whether flash erase/program completed.
 
 If the smoke test times out with no output after flashing, first check the runtime UART pins. The current image uses USART1 `PA9/PA10`. If there is still no output, recheck BOOT0 reset state, TX/RX crossing, and whether the CH340 is connected to another UART.

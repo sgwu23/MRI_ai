@@ -1,15 +1,17 @@
 # Firmware
 
-Zephyr RTOS firmware prototype for an STM32 pulse-sequence controller. The next hardware target is the available STM32F407VGT board; STM32H7 remains a higher-performance upgrade path.
+Zephyr RTOS firmware prototype for an STM32 pulse-sequence controller. The current hardware target is an STM32F407VGT development board; STM32H7 remains a higher-performance upgrade path.
 
 The first firmware target is a UART-only deterministic sequence controller:
 
-1. Accept a small command set over the Zephyr console UART.
-2. Play a built-in spin echo demo sequence by microsecond timestamp.
-3. Report each event over UART without driving GPIO pins yet.
-4. Keep GPIO outputs disabled until the camera and WiFi module pin usage is confirmed.
+1. Accept a small command set over USART1 at 57600 baud.
+2. Receive commands with UART interrupt-driven RX and line buffering.
+3. Load a JSON-defined sequence from a host-side client.
+4. Play a built-in or loaded spin echo sequence by microsecond timestamp.
+5. Report each event over UART without driving GPIO pins yet.
+6. Keep GPIO outputs disabled until the camera and WiFi module pin usage is confirmed.
 
-The code in this folder starts as a portable host-readable scaffold. Board-specific overlays should be added after confirming the exact STM32F4 board model.
+The current STM32F407VGT bring-up uses the `olimex_stm32_h407` Zephyr board target plus a local overlay for USART1, 57600 baud, and an HSI-based clock configuration.
 
 ## UART Command Set
 
@@ -20,6 +22,10 @@ HELP
 PING
 STATUS
 RUN DEMO
+LOAD BEGIN <name> <count>
+LOAD EVENT <t_us> <channel> <value>
+LOAD END
+RUN LOADED
 ```
 
 Expected `RUN DEMO` output:
@@ -40,7 +46,13 @@ seq_done name=spin_echo_demo total_us=800 runs=1
 After flashing the Zephyr app and identifying the COM port:
 
 ```powershell
-python tools/stm32_uart_smoke.py --port COM6 --baud 115200
+python tools/stm32_uart_smoke.py --port COM3 --baud 57600
+```
+
+To load a sequence JSON and run it through the firmware protocol:
+
+```powershell
+python tools/stm32_sequence_client.py firmware/sequences/spin_echo_demo.json --port COM3 --baud 57600
 ```
 
 If `pyserial` is missing:
@@ -51,13 +63,13 @@ pip install pyserial
 
 ## Zephyr Build Example
 
-For an STM32F407VG-class board, start with a close Zephyr board target such as `stm32f4_disco` when the custom board does not yet have a dedicated board definition:
+The local Windows helper copies the app into a temporary no-space path before building because the repository path contains a space:
 
-```bash
-west build -b stm32f4_disco firmware/zephyr_app
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/build_zephyr_stm32f407.ps1
 ```
 
-Use the exact board target or a custom board definition once the development board schematic and pin map are confirmed.
+The generated FlyMCU image is `build/zephyr-stm32f407/zephyr/zephyr.hex`.
 
 ## Host-First Sequence Contract
 

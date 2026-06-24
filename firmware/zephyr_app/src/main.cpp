@@ -6,6 +6,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 namespace {
@@ -27,10 +28,26 @@ constexpr SequenceEvent kSpinEchoDemo[] = {
 
 constexpr size_t kCommandBufferSize = 96U;
 constexpr size_t kLineBufferSize = 192U;
+constexpr size_t kSequenceNameSize = 32U;
+constexpr size_t kChannelNameSize = 24U;
+constexpr size_t kMaxLoadedEvents = 16U;
 constexpr size_t kSpinEchoDemoEventCount = sizeof(kSpinEchoDemo) / sizeof(kSpinEchoDemo[0]);
 
 bool g_sequence_running = false;
 uint32_t g_sequence_runs = 0U;
+
+struct LoadedSequenceEvent {
+    uint32_t t_us;
+    char channel[kChannelNameSize];
+    int value;
+};
+
+char g_loaded_sequence_name[kSequenceNameSize] = "unloaded";
+LoadedSequenceEvent g_loaded_events[kMaxLoadedEvents] = {};
+size_t g_loaded_event_count = 0U;
+size_t g_expected_loaded_event_count = 0U;
+bool g_load_in_progress = false;
+bool g_sequence_loaded = false;
 
 struct UartPort {
     const struct device* device;
@@ -81,6 +98,10 @@ void print_help() {
     broadcast_line("  PING      - check serial link");
     broadcast_line("  STATUS    - print controller state");
     broadcast_line("  RUN DEMO  - play built-in spin echo demo");
+    broadcast_line("  LOAD BEGIN <name> <count>");
+    broadcast_line("  LOAD EVENT <t_us> <channel> <value>");
+    broadcast_line("  LOAD END");
+    broadcast_line("  RUN LOADED");
 }
 
 void print_status() {
@@ -94,9 +115,32 @@ void print_status() {
         static_cast<unsigned int>(g_sequence_runs),
         static_cast<long long>(k_uptime_get()));
     broadcast(line);
+    snprintk(
+        line,
+        sizeof(line),
+        "loaded name=%s ready=%u events=%u expected=%u loading=%u\n",
+        g_loaded_sequence_name,
+        g_sequence_loaded ? 1U : 0U,
+        static_cast<unsigned int>(g_loaded_event_count),
+        static_cast<unsigned int>(g_expected_loaded_event_count),
+        g_load_in_progress ? 1U : 0U);
+    broadcast(line);
 }
 
-void play_spin_echo_demo() {
+void emit_sequence_event(size_t index, uint32_t t_us, const char* channel, int value) {
+    char line[kLineBufferSize];
+    snprintk(
+        line,
+        sizeof(line),
+        "seq_event index=%u t_us=%u channel=%s value=%d\n",
+        static_cast<unsigned int>(index),
+        static_cast<unsigned int>(t_us),
+        channel,
+        value);
+    broadcast(line);
+}
+
+void play_builtin_sequence() {
     if (g_sequence_running) {
         broadcast_line("error sequence_already_running");
         return;
@@ -113,15 +157,7 @@ void play_spin_echo_demo() {
         if (event.t_us > previous_t_us) {
             k_busy_wait(event.t_us - previous_t_us);
         }
-        snprintk(
-            line,
-            sizeof(line),
-            "seq_event index=%u t_us=%u channel=%s value=%d\n",
-            static_cast<unsigned int>(index),
-            static_cast<unsigned int>(event.t_us),
-            event.channel,
-            event.value);
-        broadcast(line);
+        emit_sequence_event(index, event.t_us, event.channel, event.value);
         previous_t_us = event.t_us;
     }
 
@@ -129,6 +165,148 @@ void play_spin_echo_demo() {
     g_sequence_running = false;
     snprintk(line, sizeof(line), "seq_done name=spin_echo_demo total_us=%u runs=%u", 800U, static_cast<unsigned int>(g_sequence_runs));
     broadcast_line(line);
+}
+
+void play_loaded_sequence() {
+    if (g_sequence_running) {
+        broadcast_line("error sequence_already_running");
+        return;
+    }
+    if (!g_sequence_loaded || g_loaded_event_count == 0U) {
+        broadcast_line("error no_loaded_sequence");
+        return;
+    }
+
+    char line[kLineBufferSize];
+    g_sequence_running = true;
+    snprintk(
+        line,
+        sizeof(line),
+        "seq_start name=%s events=%u",
+        g_loaded_sequence_name,
+        static_cast<unsigned int>(g_loaded_event_count));
+    broadcast_line(line);
+
+    uint32_t previous_t_us = 0U;
+    for (size_t index = 0; index < g_loaded_event_count; ++index) {
+        const LoadedSequenceEvent& event = g_loaded_events[index];
+        if (event.t_us > previous_t_us) {
+            k_busy_wait(event.t_us - previous_t_us);
+        }
+        emit_sequence_event(index, event.t_us, event.channel, event.value);
+        previous_t_us = event.t_us;
+    }
+
+    ++g_sequence_runs;
+    g_sequence_running = false;
+    snprintk(
+        line,
+        sizeof(line),
+        "seq_done name=%s total_us=%u runs=%u",
+        g_loaded_sequence_name,
+        static_cast<unsigned int>(g_loaded_events[g_loaded_event_count - 1U].t_us),
+        static_cast<unsigned int>(g_sequence_runs));
+    broadcast_line(line);
+}
+
+void begin_load_sequence(const char* name, unsigned int event_count) {
+    if (event_count == 0U || event_count > kMaxLoadedEvents) {
+        char line[kLineBufferSize];
+        snprintk(line, sizeof(line), "error load_count_range max=%u", static_cast<unsigned int>(kMaxLoadedEvents));
+        broadcast_line(line);
+        return;
+    }
+
+    strncpy(g_loaded_sequence_name, name, sizeof(g_loaded_sequence_name) - 1U);
+    g_loaded_sequence_name[sizeof(g_loaded_sequence_name) - 1U] = '\0';
+    g_loaded_event_count = 0U;
+    g_expected_loaded_event_count = event_count;
+    g_load_in_progress = true;
+    g_sequence_loaded = false;
+
+    char line[kLineBufferSize];
+    snprintk(line, sizeof(line), "load_begin name=%s expected=%u", g_loaded_sequence_name, event_count);
+    broadcast_line(line);
+}
+
+void append_loaded_event(unsigned int t_us, const char* channel, int value) {
+    if (!g_load_in_progress) {
+        broadcast_line("error load_not_started");
+        return;
+    }
+    if (g_loaded_event_count >= g_expected_loaded_event_count || g_loaded_event_count >= kMaxLoadedEvents) {
+        broadcast_line("error load_event_overflow");
+        return;
+    }
+    if (g_loaded_event_count > 0U && t_us < g_loaded_events[g_loaded_event_count - 1U].t_us) {
+        broadcast_line("error load_event_non_monotonic");
+        return;
+    }
+
+    LoadedSequenceEvent& event = g_loaded_events[g_loaded_event_count];
+    event.t_us = t_us;
+    strncpy(event.channel, channel, sizeof(event.channel) - 1U);
+    event.channel[sizeof(event.channel) - 1U] = '\0';
+    event.value = value;
+    ++g_loaded_event_count;
+
+    char line[kLineBufferSize];
+    snprintk(
+        line,
+        sizeof(line),
+        "load_event index=%u t_us=%u channel=%s value=%d",
+        static_cast<unsigned int>(g_loaded_event_count - 1U),
+        t_us,
+        event.channel,
+        value);
+    broadcast_line(line);
+}
+
+void finish_load_sequence() {
+    if (!g_load_in_progress) {
+        broadcast_line("error load_not_started");
+        return;
+    }
+    if (g_loaded_event_count != g_expected_loaded_event_count) {
+        char line[kLineBufferSize];
+        snprintk(
+            line,
+            sizeof(line),
+            "error load_count_mismatch received=%u expected=%u",
+            static_cast<unsigned int>(g_loaded_event_count),
+            static_cast<unsigned int>(g_expected_loaded_event_count));
+        broadcast_line(line);
+        return;
+    }
+
+    g_load_in_progress = false;
+    g_sequence_loaded = true;
+
+    char line[kLineBufferSize];
+    snprintk(line, sizeof(line), "load_done name=%s events=%u", g_loaded_sequence_name, static_cast<unsigned int>(g_loaded_event_count));
+    broadcast_line(line);
+}
+
+bool handle_load_command(const char* line) {
+    char name[kSequenceNameSize] = {};
+    char channel[kChannelNameSize] = {};
+    unsigned int count = 0U;
+    unsigned int t_us = 0U;
+    int value = 0;
+
+    if (sscanf(line, "LOAD BEGIN %31s %u", name, &count) == 2) {
+        begin_load_sequence(name, count);
+        return true;
+    }
+    if (sscanf(line, "LOAD EVENT %u %23s %d", &t_us, channel, &value) == 3) {
+        append_loaded_event(t_us, channel, value);
+        return true;
+    }
+    if (strcmp(line, "LOAD END") == 0) {
+        finish_load_sequence();
+        return true;
+    }
+    return false;
 }
 
 void trim_line(char* line) {
@@ -157,7 +335,11 @@ void handle_command(const char* port_name, char* line) {
     } else if (strcmp(line, "STATUS") == 0) {
         print_status();
     } else if (strcmp(line, "RUN DEMO") == 0) {
-        play_spin_echo_demo();
+        play_builtin_sequence();
+    } else if (strcmp(line, "RUN LOADED") == 0) {
+        play_loaded_sequence();
+    } else if (handle_load_command(line)) {
+        return;
     } else {
         broadcast_line("error unknown_command");
         print_help();
