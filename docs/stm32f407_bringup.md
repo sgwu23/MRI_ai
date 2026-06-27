@@ -143,17 +143,19 @@ seq_done name=spin_echo_demo total_us=800 runs=1
 
 This has been verified on the STM32F407VGT board through `COM3` at `57600` baud with the normal, no-delay host client.
 
-## Logic Analyzer Follow-Up
+## Logic Analyzer Validation
 
 The stable firmware image does not drive GPIO pins. This preserves SWD pins (`PA13/PA14`) and avoids interfering with existing camera/WiFi wiring.
 
-For a future logic-analyzer stage, first identify three safe exposed pins that do not overlap with USART1 (`PA9/PA10`), USB, BOOT0, NRST, SWD, camera, or WiFi. Then map `rf`, `gradient_x`, and `adc_gate` to GPIO or timer outputs and capture the expected `spin_echo_demo` windows:
+A temporary GPIO auto-wave build was used to validate the `spin_echo_demo` event schedule with a Kingst LA1010 logic analyzer. The capture used `PA9`, `PD5`, and `PA11`:
 
 | Channel | High interval |
 | --- | --- |
 | `rf` | `0 us` to `90 us` |
 | `gradient_x` | `120 us` to `220 us` |
 | `adc_gate` | `400 us` to `800 us` |
+
+Measured pulse widths are recorded in [docs/performance/stm32_gpio_logic_capture.md](performance/stm32_gpio_logic_capture.md). Future hardware-output work should use timer compare outputs on confirmed safe pins and then connect that path to the UART-loaded sequence contract.
 
 If FlyMCU flashes successfully but this smoke test still shows the old `unkown cmd` firmware response, the board did not boot the new image. Recheck `BOOT0`, reset timing, selected hex file, and whether flash erase/program completed.
 

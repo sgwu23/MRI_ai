@@ -12,6 +12,7 @@ This repository is designed as an engineering portfolio project. It does not con
 - Implemented a C++17 inference boundary with a TensorRT backend using CUDA buffers and `enqueueV3`.
 - Generated real validation visualizations covering undersampled k-space, zero-filled input, model reconstruction, and target image.
 - Brought up a Zephyr-based STM32F407 UART sequence controller on real hardware.
+- Captured STM32 GPIO timing with a Kingst LA1010 logic analyzer to validate the spin-echo event schedule.
 - Kept local tests, scripts, architecture notes, benchmark logs, and study documentation in the repo.
 
 ## Current Results
@@ -29,6 +30,7 @@ This repository is designed as an engineering portfolio project. It does not con
 | TensorRT host latency | 5.65 ms mean by `trtexec` |
 | C++ end-to-end smoke latency | 8.30 ms mean |
 | STM32F407 RTOS bridge | USART1 57600, interrupt-driven RX, JSON sequence load/run path |
+| STM32F407 GPIO timing | PA9 91.4 us, PD5 102.25 us, PA11 401.85 us measured by LA1010 |
 
 See [docs/performance/fastmri_v1_jetson_benchmark.md](docs/performance/fastmri_v1_jetson_benchmark.md) for the full benchmark summary.
 
@@ -57,6 +59,7 @@ mri-edge-rtos-ai/
 - [docs/architecture.md](docs/architecture.md): System architecture and module boundaries.
 - [docs/cloud_training_fastmri.md](docs/cloud_training_fastmri.md): Cloud training workflow.
 - [docs/stm32f407_bringup.md](docs/stm32f407_bringup.md): STM32F407VGT serial bring-up notes.
+- [docs/performance/stm32_gpio_logic_capture.md](docs/performance/stm32_gpio_logic_capture.md): STM32F407 GPIO timing capture result.
 - [docs/performance/fastmri_v1_jetson_benchmark.md](docs/performance/fastmri_v1_jetson_benchmark.md): Jetson deployment and benchmark results.
 
 ## Quick Start
@@ -120,4 +123,4 @@ python tools/stm32_sequence_client.py firmware/sequences/spin_echo_demo.json --p
 
 ## Next Stage
 
-The next engineering stage is optional hardware timing validation: choose safe, non-SWD STM32 pins and map sequence channels to GPIO/timer outputs after the camera and WiFi module pin usage is confirmed.
+Optional future work would replace the software GPIO timing experiment with timer-compare outputs on confirmed safe pins, then integrate that output path with the UART-loaded sequence contract.
